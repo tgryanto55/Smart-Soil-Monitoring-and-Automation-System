@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Smart Soil Monitoring</title>
+
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<!-- Halaman Login -->
+<div class="login-page" id="loginPage">
+  <div class="login-left">
+    <div class="login-container">
+      <div class="login-header">
+        <div class="login-logo">
+          <div class="logo-icon">
+            <i class="fa-solid fa-seedling"></i>
+          </div>
+        </div>
+        <h1 class="login-title">Smart Soil Monitoring</h1>
+        <p class="login-subtitle">Masuk ke dashboard monitoring kebun Anda</p>
+      </div>
+      
+      <form class="login-form" id="loginForm">
+        <div class="form-group">
+          <label for="username" class="form-label">Username</label>
+          <input type="text" id="username" class="form-input" placeholder="Masukkan username" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="password" class="form-label">Password</label>
+          <input type="password" id="password" class="form-input" placeholder="Masukkan password" required>
+        </div>
+        
+        <button type="submit" class="login-btn">
+          <i class="fa-solid fa-sign-in-alt"></i>
+          Masuk
+        </button>
+      </form>
+      
+      <div style="margin-top: 1.5rem; text-align: center; font-size: 0.9rem; color: var(--text-muted);">
+        <p>Gunakan username: <strong>admin</strong> dan password: <strong>admin</strong> untuk mencoba</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="login-right">
+    <div class="login-quote">
+      <p class="quote-text">"Teknologi pertanian pintar untuk masa depan yang berkelanjutan"</p>
+      <p class="quote-author">- Smart Soil Monitoring System</p>
+    </div>
+  </div>
+</div>
+
+<!-- Notification Element -->
+<div class="notification" id="notification">
+  <i class="fa-solid fa-check-circle"></i>
+  <span id="notificationText">Login berhasil!</span>
+</div>
+
+<!-- Dashboard (Awalnya Disembunyikan) -->
+<div class="dashboard" id="dashboard">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div class="navbar-logo">
+        <i class="fa-solid fa-seedling"></i>
+      </div>
+      <span>Smart Soil Monitoring</span>
+    </div>
+    <div class="navbar-controls">
+      <div class="status-indicators">
+        <div class="status-indicator">
+          <div class="indicator-dot" id="esp32Dot"></div>
+          <span class="indicator-label">ESP32</span>
+          <div class="status-tooltip" id="esp32Tooltip">ESP32: Menghubungkan...</div>
+        </div>
+        <div class="status-indicator">
+          <div class="indicator-dot" id="brokerDot"></div>
+          <span class="indicator-label">Broker</span>
+          <div class="status-tooltip" id="brokerTooltip">Broker: Menghubungkan...</div>
+        </div>
+      </div>
+      <button class="navbar-ota-btn" id="navbarOtaBtn">
+        <i class="fa-solid fa-cloud-upload-alt"></i>
+      </button>
+      <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+        <i class="fa-solid fa-moon" id="themeIcon"></i>
+      </button>
+      <button class="navbar-ota-btn" id="logoutBtn">
+        <i class="fa-solid fa-sign-out-alt"></i>
+        <span class="ota-btn-text">Logout</span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- ROW 1: Sensor and Control Cards -->
+    <div class="row">
+      <!-- Card Sensor -->
+      <div class="card sensor-card">
+        <div class="card-header">
+          <div class="title"><i class="fa-solid fa-gauge-high"></i> Status Sensor</div>
+          <div class="status-badge status-on" id="sensorBadge">Active</div>
+        </div>
+        
+        <div class="sensor-card-content">
+          <!-- Sensor Box 1: Soil Moisture -->
+          <div class="sensor-box">
+            <div class="sensor-icon-box">
+              <i class="fa-solid fa-droplet"></i>
+            </div>
+            <div class="sensor-info">
+              <div class="sensor-value-unit">
+                <span class="sensor-value soil-value" id="soilPercent">--</span>
+                <span class="sensor-unit">%</span>
+              </div>
+              <div class="sensor-label">Kelembaban Tanah</div>
+              <div class="sensor-status" id="soilStatus">--</div>
+            </div>
+          </div>
+          
+          <!-- Sensor Box 2: Temperature -->
+          <div class="sensor-box">
+            <div class="sensor-icon-box temp-icon-box">
+              <i class="fa-solid fa-temperature-half"></i>
+            </div>
+            <div class="sensor-info">
+              <div class="sensor-value-unit">
+                <span class="sensor-value temp-value" id="tempValue">--</span>
+                <span class="sensor-unit">°C</span>
+              </div>
+              <div class="sensor-label">Suhu</div>
+              <div class="sensor-status" id="tempStatus">--</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card Control -->
+      <div class="card">
+        <div class="card-header">
+          <div class="title"><i class="fa-solid fa-sliders"></i> Kontrol Sistem</div>
+          <div class="status-badge" id="controlBadge">Active</div>
+        </div>
+        
+        <div class="control-section">
+          <div class="threshold-control">
+            <div class="threshold-label">Batas Kelembaban</div>
+            
+            <div class="threshold-inputs-container">
+              <div class="threshold-input-wrapper">
+                <div class="threshold-input-label">Minimum (%)</div>
+                <input type="number" min="0" max="100" class="threshold-input" id="thresholdMinInput" placeholder="Min">
+              </div>
+              
+              <div class="threshold-input-wrapper">
+                <div class="threshold-input-label">Maksimum (%)</div>
+                <input type="number" min="0" max="100" class="threshold-input" id="thresholdMaxInput" placeholder="Max">
+              </div>
+            </div>
+            
+            <div class="threshold-input-group">
+              <button class="threshold-btn" id="thresholdBtn">Set Batas</button>
+            </div>
+            
+            <div class="threshold-minmax-display">
+              <div class="threshold-minmax-item">
+                <div class="threshold-minmax-label">Min Saat Ini</div>
+                <div class="threshold-minmax-value" id="currentThresholdMin">--%</div>
+              </div>
+              <div class="threshold-minmax-item">
+                <div class="threshold-minmax-label">Max Saat Ini</div>
+                <div class="threshold-minmax-value" id="currentThresholdMax">--%</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Baris horizontal untuk mode kontrol dan pompa kontrol -->
+          <div class="control-row-horizontal">
+            <div class="mode-control">
+              <div class="mode-label">Mode Kontrol</div>
+              <div class="mode-toggle">
+                <button class="toggle-btn inactive" id="modeToggleBtn">
+                  <i class="fa-solid fa-robot"></i>
+                  <span id="modeToggleText">AUTO</span>
+                </button>
+              </div>
+              <div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px">
+                Status: <span id="modeStatusText">Auto</span>
+              </div>
+            </div>
+            
+            <div class="pump-toggle-control">
+              <div class="pump-toggle-label">Kontrol Manual Pompa</div>
+              <div class="pump-toggle-container">
+                <button class="pump-toggle-btn off" id="pumpToggleBtn" disabled>
+                  <i class="fa-solid fa-power-off"></i>
+                  <span id="pumpToggleText">MATI</span>
+                </button>
+              </div>
+              <div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px">
+                Status Pompa: <span id="pumpStatusText">MATI</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 2: Chart Card dan Data Log Card -->
+    <div class="row">
+      <!-- Card Chart -->
+      <div class="card">
+        <div class="chart-header">
+          <div class="title"><i class="fa-solid fa-chart-line"></i> Grafik Monitoring</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="combinedChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Card Data Log -->
+      <div class="card log-card">
+        <div class="card-header">
+          <div class="title"><i class="fa-solid fa-database"></i> Data Log</div>
+        </div>
+        
+        <div class="log-content">
+          <div class="log-table-container">
+            <table class="log-table">
+              <thead>
+                <tr>
+                  <th>Waktu</th>
+                  <th>Kelembaban</th>
+                  <th>Suhu</th>
+                </tr>
+              </thead>
+              <tbody id="logTableBody">
+                <tr>
+                  <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Menunggu data sensor...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="log-actions">
+            <button class="download-btn" id="downloadBtn">
+              <i class="fa-solid fa-download"></i> Download Log
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Download Modal -->
+  <div class="modal" id="downloadModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">Download Data Log</div>
+        <button class="close-btn" id="closeModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Pilih format untuk mengunduh data log:</p>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn csv" id="downloadCSV"><i class="fa-solid fa-file-csv"></i> CSV</button>
+        <button class="modal-btn excel" id="downloadExcel"><i class="fa-solid fa-file-excel"></i> Excel</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>EMQX Broker (broker.emqx.io)</span>
+  </footer>
+</div>
+
+<script src="js/notification.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/login.js"></script>
+<script src="js/chart.js"></script>
+<script src="js/mqtt.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>
