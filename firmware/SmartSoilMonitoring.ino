@@ -10,8 +10,8 @@
 #include <Update.h>
 
 // ================== KONFIGURASI ==================
-#define WIFI_SSID "alah mbuh"
-#define WIFI_PASSWORD "22334455"
+#define WIFI_SSID ""
+#define WIFI_PASSWORD ""
 #define MQTT_SERVER "broker.emqx.io"
 #define MQTT_PORT 1883
 
