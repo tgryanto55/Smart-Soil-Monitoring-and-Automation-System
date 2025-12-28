@@ -24,7 +24,7 @@ A web-based dashboard for monitoring soil moisture and temperature with real-tim
 - Theme Support: Dark/Light theme toggle
 - Responsive Design: Works on desktop, tablet, and mobile devices
 - OTA Support: One-click access to device OTA update page
-
+### Video Demo : https://drive.google.com/file/d/1-825w08CDRcw3BJAFFAQK3e2TdM8azBJ/view?usp=sharing
 --- 
 
 ## 🔧 Hardware Components
